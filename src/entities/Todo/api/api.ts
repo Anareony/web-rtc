@@ -5,7 +5,7 @@ export const getTodos = async (page: number) => {
   const { data } = await instance.get<ITodo[]>("/todos", {
     params: {
       _page: page,
-      _limit: 10,
+      _limit: 20,
     },
   });
 
@@ -16,10 +16,9 @@ export const changeStatusTodo = async (
   id: number,
   status: ITodo["completed"]
 ) => {
-  const { data } = await instance.put<ITodo>(
-    `/todos/${id}`,
-    JSON.stringify({ status })
-  );
+  const { data } = await instance.patch<ITodo>(`/todos/${id}`, {
+    completed: status,
+  });
 
   return data;
 };

@@ -5,31 +5,25 @@ import { changeStatusTodo, getTodos } from "../api/api";
 interface TodoState {
   todos: ITodo[];
   isLoading: boolean;
-  isSuccess: boolean;
-  error: unknown;
   currentPage: number;
-  getTodos: () => Promise<void>;
-  changeStatusTodo: (id: number, status: ITodo["completed"]) => ITodo;
+  getTodos: () => void;
+  changeStatusTodo: (id: number, status: ITodo["completed"]) => Promise<ITodo>;
 }
 
 export const useTodosStore = create<TodoState>((set, get) => ({
   todos: [],
-  favTodos: [],
-  error: null,
   isLoading: false,
-  isSuccess: false,
   currentPage: 0,
   getTodos: async () => {
     set({ currentPage: get().currentPage + 1 });
     try {
       set({ isLoading: true });
       const response = await getTodos(get().currentPage);
-
-      set(() => ({
+      set({
         todos: [...get().todos, ...response],
-      }));
+      });
     } catch (error: unknown) {
-      set({ error: error });
+      console.error("Error on get todos:" + error);
     } finally {
       set({ isLoading: false });
     }
@@ -39,7 +33,8 @@ export const useTodosStore = create<TodoState>((set, get) => ({
       const response = await changeStatusTodo(id, status);
       return response;
     } catch (error: unknown) {
-      set({ error: error });
+      console.error("Error on change status todos:" + error);
+      throw new Error("Failed to change todo status");
     }
   },
 }));
