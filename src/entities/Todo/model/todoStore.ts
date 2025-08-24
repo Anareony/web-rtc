@@ -8,20 +8,21 @@ interface TodoState {
   currentPage: number;
   getTodos: () => void;
   changeStatusTodo: (id: number, status: ITodo["completed"]) => Promise<ITodo>;
+  reset: () => void;
 }
 
 export const useTodosStore = create<TodoState>((set, get) => ({
   todos: [],
   isLoading: false,
-  currentPage: 0,
+  currentPage: 1,
   getTodos: async () => {
-    set({ currentPage: get().currentPage + 1 });
     try {
       set({ isLoading: true });
       const response = await getTodos(get().currentPage);
       set({
         todos: [...get().todos, ...response],
       });
+      set({ currentPage: get().currentPage + 1 });
     } catch (error: unknown) {
       console.error("Error on get todos:" + error);
     } finally {
@@ -33,8 +34,14 @@ export const useTodosStore = create<TodoState>((set, get) => ({
       const response = await changeStatusTodo(id, status);
       return response;
     } catch (error: unknown) {
-      console.error("Error on change status todos:" + error);
-      throw new Error("Failed to change todo status");
+      console.error("Error tp change todo status:" + error);
+      throw new Error("Error to change todo status");
     }
+  },
+  reset: () => {
+    set({
+      currentPage: 1,
+      todos: [],
+    });
   },
 }));
