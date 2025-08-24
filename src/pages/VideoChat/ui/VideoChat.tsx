@@ -5,25 +5,22 @@ import { Button } from "@/shared/ui/Button";
 import { ROUTER_PATH } from "@/shared/router/path";
 
 export const VideoChatPage = () => {
-  const video = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream>(null);
   const [isAudioMuted, setIsAudioMuted] = useState(true);
   const [isVideoMuted, setIsVideoMuted] = useState(true);
 
   const toggleAudio = () => {
-    if (!video.current?.srcObject) return;
-    const stream = video.current.srcObject as MediaStream;
-
-    stream.getAudioTracks().forEach((track) => {
+    if (!streamRef.current) return;
+    streamRef.current.getAudioTracks().forEach((track) => {
       track.enabled = !track.enabled;
     });
     setIsAudioMuted((prev) => !prev);
   };
 
   const toggleVideo = () => {
-    if (!video.current?.srcObject) return;
-    const stream = video.current.srcObject as MediaStream;
-
-    stream.getVideoTracks().forEach((track) => {
+    if (!streamRef.current) return;
+    streamRef.current.getVideoTracks().forEach((track) => {
       track.enabled = !track.enabled;
     });
     setIsVideoMuted((prev) => !prev);
@@ -36,24 +33,29 @@ export const VideoChatPage = () => {
         audio: true,
       });
 
-      if (!video.current) return;
+      if (videoRef.current) {
+        videoRef.current.srcObject = localStream;
+        streamRef.current = localStream;
+      }
 
-      video.current.srcObject = localStream;
-      video.current.onloadedmetadata = () => video.current?.play();
+      setIsAudioMuted(false);
+      setIsVideoMuted(false);
     } catch (err) {
       console.log("Error accessing media devices:" + err);
     }
   };
 
   const stopMedia = async () => {
-    if (video.current?.srcObject) {
-      const stream = video.current.srcObject as MediaStream;
-      stream.getTracks().forEach((track) => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => {
         track.stop();
-        track.enabled = false;
       });
-      video.current.srcObject = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsAudioMuted(true);
+    setIsVideoMuted(true);
   };
 
   useEffect(() => {
@@ -65,20 +67,16 @@ export const VideoChatPage = () => {
 
   return (
     <div className="flex flex-col justify-between items-center gap-2 h-full ">
-      <div className="w-full h-[calc(100vh-80px)] flex justify-center">
-        <div
-          className={`w-full h-full object-contain rounded-md bg-cyan-500 relative flex justify-center items-center ${
-            !isVideoMuted ? "hidden" : null
-          }`}
-        >
-          <User size={56} color="#fff" />
-        </div>
+      <div className="w-full h-[calc(100vh-80px)] flex justify-center items-center relative">
+        {isVideoMuted && (
+          <div className="absolute flex justify-center items-center w-full h-full bg-cyan-500 rounded-md">
+            <User size={56} color="#fff" />
+          </div>
+        )}
         <video
-          ref={video}
+          ref={videoRef}
           muted={isAudioMuted}
-          className={`h-full object-contain rounded-md ${
-            isVideoMuted ? "hidden" : null
-          }`}
+          className={`h-full object-contain rounded-md`}
           playsInline
           autoPlay
         />
