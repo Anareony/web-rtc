@@ -10,6 +10,30 @@ export const VideoChatPage = () => {
   const [isAudioMuted, setIsAudioMuted] = useState(true);
   const [isVideoMuted, setIsVideoMuted] = useState(true);
 
+  const trackListenersRef = useRef<
+    Array<{
+      track: MediaStreamTrack;
+      onEnded: () => void;
+    }>
+  >([]);
+
+  const attachTrackListeners = (stream: MediaStream) => {
+    trackListenersRef.current.forEach(({ track, onEnded }) => {
+      track.removeEventListener("ended", onEnded);
+    });
+    trackListenersRef.current = [];
+
+    const addForTrack = (track: MediaStreamTrack) => {
+      const onEnded = () => {
+        stopMedia();
+      };
+      track.addEventListener("ended", onEnded);
+      trackListenersRef.current.push({ track, onEnded });
+    };
+
+    stream.getTracks().forEach(addForTrack);
+  };
+
   const toggleAudio = () => {
     if (!streamRef.current) return;
     streamRef.current.getAudioTracks().forEach((track) => {
@@ -40,16 +64,24 @@ export const VideoChatPage = () => {
 
       setIsAudioMuted(false);
       setIsVideoMuted(false);
+      attachTrackListeners(localStream);
     } catch (err) {
       console.log("Error accessing media devices:" + err);
+      setIsAudioMuted(true);
+      setIsVideoMuted(true);
     }
   };
 
   const stopMedia = async () => {
     if (streamRef.current) {
+      trackListenersRef.current.forEach(({ track, onEnded }) => {
+        track.removeEventListener("ended", onEnded);
+      });
+      trackListenersRef.current = [];
       streamRef.current.getTracks().forEach((track) => {
         track.stop();
       });
+      streamRef.current = null;
     }
     if (videoRef.current) {
       videoRef.current.srcObject = null;
